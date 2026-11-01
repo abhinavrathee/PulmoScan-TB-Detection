@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🫁 PulmoScan
+<img src="assets/pulmoscan-logo.svg" width="470" alt="PulmoScan — chest X-ray research">
 
 ### Chest X-ray Tuberculosis Classification
 
@@ -220,6 +220,8 @@ PulmoScan-TB-Detection/
 ├── CHANGELOG.md
 ├── pyproject.toml
 ├── requirements.txt
+├── assets/
+│   └── pulmoscan-logo.svg
 ├── docs/
 │   ├── architecture.md
 │   ├── competition.md
