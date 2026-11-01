@@ -30,7 +30,7 @@ kaggle competitions files tuberculosis-detection-from-chest-x-rays
 kaggle competitions download tuberculosis-detection-from-chest-x-rays -p TB_Dataset
 ```
 
-Do not commit the images or labels. Check the competition terms and dataset license before redistribution. The locally copied dataset may be unzipped into the expected folders.
+The dataset can be large and may have redistribution restrictions. Check the competition terms and dataset license before adding it to a public repository. The locally copied dataset may be unzipped into the expected folders.
 
 At repository setup, the Kaggle competition file listing returned only `nothing.txt`, not the dataset archive. The commands above are the standard Kaggle CLI workflow, but they may not retrieve the data for this event; keep using the authorized local copy if the competition page does not expose the files.
 

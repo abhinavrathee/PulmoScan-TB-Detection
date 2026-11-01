@@ -2,9 +2,9 @@
 
 ## Source materials in this repository
 
-- `Competition Link And All Details.txt` supplied the Kaggle URL.
+- `competition-link.txt` (renamed from the supplied link file) supplied the Kaggle URL.
 - `PulmoScan-Project-Overview.md` supplied the event name, host attribution, dates, dataset counts, metric claims, data layout and model hyperparameters.
-- The two original notebooks contain a Colab mount, paths, preprocessing setup, an EfficientNetB3 model, two training phases and `fit()` calls.
+- Three original notebook files contain a Colab mount, paths, preprocessing setup, an EfficientNetB3 model, two training phases and `fit()` calls.
 
 The archived overview is a sanitized copy; a hard-coded dataset-access password from the supplied notes was redacted before it was placed in the repository.
 

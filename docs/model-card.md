@@ -10,11 +10,11 @@ An ImageNet-pretrained EfficientNetB3 backbone with global average pooling, a 25
 
 ## Data
 
-The supplied materials describe competition-provided chest X-rays and labels. A partial dataset copy is present in the local workspace and is excluded from Git; it was still missing many labeled training images at the latest check. Dataset origin, patient overlap, acquisition settings, demographic coverage and label quality have not been independently assessed.
+The supplied materials describe competition-provided chest X-rays and labels. A partial dataset copy was present in the local workspace and was still missing many labeled training images at the latest check. Dataset origin, patient overlap, acquisition settings, demographic coverage and label quality have not been independently assessed.
 
 ## Evaluation
 
-The pipeline reports accuracy, precision, recall and F1 on a stratified image-level holdout split. No performance values are reported because the dataset has not yet been supplied and no run is recorded.
+The pipeline reports accuracy, precision, recall and F1 on a stratified image-level holdout split. No performance values are reported because no complete run is recorded.
 
 ## Known limitations and risks
 
