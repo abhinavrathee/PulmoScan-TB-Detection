@@ -1,6 +1,5 @@
 # Local data and credentials
 data/
-TB_Dataset/
 .env
 *.key
 kaggle.json
