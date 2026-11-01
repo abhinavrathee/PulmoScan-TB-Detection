@@ -1,8 +1,6 @@
 <div align="center">
 
-<img src="assets/pulmoscan-logo.svg" width="470" alt="PulmoScan — chest X-ray research">
-
-### Chest X-ray Tuberculosis Classification
+<img src="assets/pulmoscan-logo.svg" width="400" alt="PulmoScan — chest X-ray tuberculosis classification">
 
 **A transfer-learning project built for the CDIS, IIT Kanpur AI/ML hackathon**
 
