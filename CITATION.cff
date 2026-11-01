@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use PulmoScan, please cite this software."
+title: "PulmoScan: Chest X-ray Tuberculosis Classification"
+type: software
+authors:
+  - family-names: Rathee
+    given-names: Abhinav
+version: 0.1.0
+date-released: 2026-11-01
+license: MIT
+url: "https://github.com/abhinavrathee/PulmoScan-TB-Detection"
+repository-code: "https://github.com/abhinavrathee/PulmoScan-TB-Detection"
+keywords:
+  - tuberculosis
+  - chest X-ray
+  - computer vision
+  - transfer learning
+  - EfficientNetB3
+abstract: >-
+  An educational transfer-learning project and reproducible pipeline for binary
+  classification of chest X-ray images using an ImageNet-pretrained EfficientNetB3.

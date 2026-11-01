@@ -8,6 +8,7 @@
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-2.16.2-FF6F00?logo=tensorflow&logoColor=white)
 ![Task](https://img.shields.io/badge/Task-Binary%20Image%20Classification-5B6ABF)
 ![Status](https://img.shields.io/badge/Status-Portfolio%20Reproducibility%20Pipeline-7A5AF8)
+![License](https://img.shields.io/badge/Code%20License-MIT-2EA44F)
 
 [Overview](#overview) · [Architecture](#how-it-works) · [Setup](#quick-start) · [Docs](#project-documentation) · [Competition](#competition-context)
 
@@ -206,6 +207,7 @@ No validation metric or Kaggle score is included in this repository because the 
 | [Competition provenance](docs/competition.md) | Supplied details versus Kaggle account/API checks |
 | [Results and evidence](docs/results.md) | What has and has not been measured |
 | [Model card](docs/model-card.md) | Intended use, limitations and risk notes |
+| [License and citations](docs/licensing-and-citations.md) | Code license scope, data/weight provenance and citations |
 | [Notebook archive](notebooks/README.md) | Context on the original Colab notebooks |
 | [Contributing](CONTRIBUTING.md) | How to extend the repository |
 
@@ -214,6 +216,8 @@ No validation metric or Kaggle score is included in this repository because the 
 ```text
 PulmoScan-TB-Detection/
 ├── README.md
+├── LICENSE
+├── CITATION.cff
 ├── CONTRIBUTING.md
 ├── CHANGELOG.md
 ├── pyproject.toml
@@ -224,6 +228,7 @@ PulmoScan-TB-Detection/
 │   ├── architecture.md
 │   ├── competition.md
 │   ├── data.md
+│   ├── licensing-and-citations.md
 │   ├── model-card.md
 │   ├── roadmap.md
 │   ├── results.md
@@ -251,6 +256,10 @@ The supplied project notes attribute the **Tuberculosis Detection from Chest X-R
 ## Responsible use
 
 PulmoScan is an educational machine-learning project. It is not a medical device, is not clinically validated, and must not be used to diagnose, screen, triage or treat anyone. A model prediction is not a medical finding. Read the [model card](docs/model-card.md) before interpreting the outputs.
+
+## License and citation
+
+Original project code, documentation and logo are licensed under [MIT](LICENSE). The competition dataset, ImageNet data, downloaded pretrained weights and third-party packages are outside that grant and retain their own terms. See [license scope and citations](docs/licensing-and-citations.md) and [CITATION.cff](CITATION.cff).
 
 ## Acknowledgements
 

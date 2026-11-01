@@ -8,12 +8,26 @@ version = "0.1.0"
 description = "Educational chest X-ray tuberculosis classification project"
 readme = "README.md"
 requires-python = ">=3.10,<3.12"
+license = "MIT"
+authors = [
+  { name = "Abhinav Rathee" },
+]
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+]
 dependencies = [
   "tensorflow==2.16.2",
   "pandas>=2.1,<3",
   "numpy>=1.26,<2",
   "scikit-learn>=1.4,<2",
 ]
+
+[project.urls]
+Repository = "https://github.com/abhinavrathee/PulmoScan-TB-Detection"
+Citation = "https://github.com/abhinavrathee/PulmoScan-TB-Detection/blob/main/CITATION.cff"
 
 [tool.setuptools.packages.find]
 where = ["src"]
