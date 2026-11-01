@@ -12,14 +12,17 @@
 - [Technology stack](#technology-stack)
 - [Repository map](#repository-map)
 - [Implementation details](#implementation-details)
+- [Design choices and parameter rationale](#design-choices-and-parameter-rationale)
 - [Data contracts and artifacts](#data-contracts-and-artifacts)
 - [CLI reference](#cli-reference)
 - [Security, privacy, and responsible use](#security-privacy-and-responsible-use)
 - [Operations and deployment](#operations-and-deployment)
 - [Evaluation and evidence](#evaluation-and-evidence)
+- [Original overview comparison](#original-overview-comparison)
 - [History and current work](#history-and-current-work)
 - [Setup and commands](#setup-and-commands)
 - [Competition and presentation context](#competition-and-presentation-context)
+- [Project skills and portfolio wording](#project-skills-and-portfolio-wording)
 - [Source and evidence index](#source-and-evidence-index)
 
 ## At a glance
@@ -200,11 +203,43 @@ The model is `EfficientNetB3(include_top=False, weights="imagenet")`, initially 
 
 The head phase uses Adam at `1e-4`, binary cross-entropy, and binary accuracy. Fine tuning defaults to the final 100 backbone layers with Adam at `1e-5`; batch-normalization layers are explicitly kept non-trainable. Each phase monitors validation loss, saves its best checkpoint, and uses early stopping with patience 3 and restoration of best weights. If fine tuning runs, the two saved checkpoints are evaluated on the validation dataset and the lower-loss one becomes `best_model.keras`; the intermediate fine-tune file is removed. The loader does not add class weights or resampling despite the label imbalance documented in the data notes.
 
+The effective training sequence is:
+
+```mermaid
+sequenceDiagram
+    participant D as Validated training data
+    participant M as Model
+    participant V as Holdout validation data
+    participant F as Run files
+    D->>M: Fit new head; backbone frozen
+    M->>V: Evaluate validation loss after epochs
+    M->>F: Save best head checkpoint
+    D->>M: Optionally fine-tune final backbone layers
+    M->>V: Evaluate fine-tuning validation loss
+    M->>F: Save best fine-tuned checkpoint
+    F->>V: Compare phase checkpoints by loss
+    V->>F: Write selected model, metrics, and per-image predictions
+```
+
+Early stopping and checkpointing address overfitting operationally by retaining lower-validation-loss weights and stopping after repeated non-improvement. They do not demonstrate generalization to a new hospital, scanner, population, or patient cohort.
+
 ### Metrics and prediction
 
 After checkpoint selection, validation probabilities are thresholded with the configured threshold (default 0.5). Accuracy, precision, recall, and F1 are calculated with scikit-learn; zero predicted positives result in precision/recall/F1 values of zero where applicable via `zero_division=0`. `validation_metrics.json` includes split counts, configuration, threshold, metrics, and TensorFlow version. `validation_predictions.csv` includes `ID`, ground truth `Target`, `Probability`, and `Predicted`.
 
 Prediction discovers files ending in `.png` (case-insensitive) in sorted path order, decodes/resizes them through the shared loader, loads the supplied model, thresholds outputs, creates the output parent directory, and writes `ID,Target`. It does not check that the model was trained with the same image-size argument, verify a competition template, upload the file, or include probabilities in the output.
+
+The metric definitions used for interpretation are:
+
+| Metric | Definition | What it describes here |
+|---|---|---|
+| Accuracy | `(TP + TN) / (TP + TN + FP + FN)` | Share of holdout images whose thresholded label matches the supplied target. It can obscure minority-class performance when labels are imbalanced. |
+| Precision | `TP / (TP + FP)` | Of images predicted positive, the fraction labeled positive. |
+| Recall / sensitivity | `TP / (TP + FN)` | Of labeled positive images, the fraction predicted positive. |
+| F1 | `2 × precision × recall / (precision + recall)` | Harmonic mean of positive-class precision and recall. |
+| Binary cross-entropy | Mean binary log loss between labels and sigmoid outputs | Training/checkpoint-selection objective; not the thresholded competition metric. |
+
+Here, positive means the `Target=1` class in the supplied CSV. With no real completed run there are no PulmoScan metric values to interpret. A future result should state the split, threshold, dataset inventory, and run configuration beside every reported score.
 
 ## Data contracts and artifacts
 
@@ -231,6 +266,26 @@ Class mapping is `0 = normal`, `1 = TB-positive`, as documented by project mater
 | `submission.csv` (or chosen output path) | Test image filenames and integer predictions with exact columns `ID,Target`. |
 
 These are local filesystem artifacts, not immutable evidence stores. Runs can overwrite files when they reuse a directory. There is no run registry or built-in provenance checksum for the input data.
+
+### Example output contracts
+
+The competition-shaped output is intentionally minimal:
+
+```csv
+ID,Target
+TB_test_0001.png,0
+TB_test_0002.png,1
+```
+
+The validation file is richer because it is intended for inspection rather than direct upload:
+
+```csv
+ID,Target,Probability,Predicted
+TB_train_0007.png,1,0.73,1
+TB_train_0012.png,0,0.18,0
+```
+
+These rows illustrate the implemented column contract only; values are examples, not measured outputs from this project.
 
 ## CLI reference
 
@@ -291,6 +346,12 @@ There is no deployed service, health/readiness endpoint, request authentication,
 
 ## Evaluation and evidence
 
+### Evaluation design and limits
+
+The current evaluation is a single stratified random holdout from the labeled image rows. Stratification approximately preserves the class distribution in both subsets, but it does not substitute for grouped or external validation. The fixed seed makes row assignment reproducible for a stable CSV ordering/version and library behavior; it does not guarantee bit-for-bit GPU determinism. Reusing this holdout repeatedly to tune many choices can also make it less independent as an estimate of future performance.
+
+Validation loss selects the weights, and a fixed threshold converts predicted scores to labels. The code does not search for a best F1 threshold, calculate a confidence interval, produce a confusion matrix, compare subgroups, or measure calibration. Those are reasonable future evaluation tasks, not current outputs.
+
 ### What is implemented vs. what is measured
 
 | Item | Evidence status as of 2026-11-01 |
@@ -306,6 +367,46 @@ There is no deployed service, health/readiness endpoint, request authentication,
 | Competition submission / personal score | Competition notes report no submission for the connected account in the 2026-11-01 check; no PulmoScan score or rank is claimed. |
 
 The notebooks preserve a stale `KeyError: 'class'` traceback in an otherwise empty cell in two copies, according to the notebook/provenance notes. It is historical notebook output, not evidence of a passing or current CLI run. Public leaderboard entries are not evidence for this project's model.
+
+## Original overview comparison
+
+The supplied long-form overview is useful as a record of the initial hackathon framing and intended notebook method. It was compared with the current package, repository docs, and notebook archive before preparing this dossier. The following reconciliation keeps historical details distinct from current implementation:
+
+| Topic | Supplied overview | Current evidence used here |
+|---|---|---|
+| Product framing | Calls the project an automated TB diagnosis/screening system. | Repository model card limits intended use to education and portfolio demonstration; no clinical use is supported. |
+| Primary environment | Describes Colab, Drive mounting, and notebook execution. | Those belong to the preserved original notebooks. The maintained workflow is a local Python CLI targeting Linux, WSL2, or Colab. |
+| Preprocessing | Describes notebook `ImageDataGenerator`, `/255` rescaling, and a validation split. | Current `tf.data` pipeline decodes RGB PNGs and resizes; Keras EfficientNet performs its built-in rescaling, so the maintained loader does not separately divide by 255. |
+| Fine-tuning duration | Describes the notebook's 10 head epochs plus nominal 10 fine-tuning epochs. | Current CLI defaults match those maxima, but early stopping can end earlier; fine tuning can be disabled. Notebook code and CLI behavior are not interchangeable. |
+| Evaluation | Presents F1 as competition primary metric and recall as tie-breaker. | This is attributed to supplied notes; accessible official rules were not confirmed. The code reports F1/recall but does not optimize them or verify the official scoring rule. |
+| Dataset counts | States 2,940 training and 1,260 test images. | 2,940 CSV rows and 1,260 test files are documented/observed; the current training image directory has only 1,309 files. These are not a complete verified dataset manifest. |
+| Results | Uses aspirational language about a robust/strong solution and improved benchmark. | No complete run, score, saved model, or submission is documented. This dossier makes no performance claim. |
+| Competition participation | Gives competition dates, allowed methods, and late-submission context. | These are historical supplied claims. Check `competition.md`; official dates/rules were not independently verified in the repository evidence. |
+
+The reference also contains a dataset-access command and a hard-coded password. Neither is reproduced here. Follow authorized data access instructions from the current provider and never place credentials in project documentation. The archived in-repository source overview is described as sanitized in `competition.md`.
+
+## Design choices and parameter rationale
+
+The table explains the current defaults and their practical role. These are implementation choices documented in the repository, not evidence that the values are optimal.
+
+| Choice | Default | Why it is present | Trade-off / evidence limit |
+|---|---:|---|---|
+| EfficientNetB3 with ImageNet weights | B3 | Reuses pretrained visual features and keeps the experiment focused on transfer learning. | Domain and dataset suitability have not been measured against alternative backbones. Weight download/licensing is upstream. |
+| Input dimensions | `224 × 224` | Standardized tensor dimensions for batching and model input. | Resizing can alter fine image detail; the project has no resolution ablation. |
+| Batch size | `32` | Practical minibatch default in the maintained pipeline and original notes. | Memory use depends on runtime/GPU; no batch-size benchmark is recorded. |
+| Head | GAP → Dense 256 ReLU → Dropout 0.5 → sigmoid | Converts spatial backbone features into one binary score with a compact learned classifier. | No architecture comparison or calibration study exists. |
+| Loss | Binary cross-entropy | Trains a single sigmoid output against binary labels. | This loss is not the same quantity as F1 or the purported competition score. |
+| Optimizer | Adam | Adaptive optimizer used in both training phases. | No optimizer comparison is recorded. |
+| Head learning rate | `1e-4` | Default for fitting newly initialized classifier layers while features remain frozen. | A documented starting point, not a tuned optimum. |
+| Fine-tuning learning rate | `1e-5` | Lower update size while adapting pretrained backbone weights. | Fine tuning is optional and may not improve holdout loss. |
+| Fine-tuned layers | Last `100` | Limits how much of the pretrained representation is updated. | Layer count is a heuristic and is not validated experimentally here. |
+| Batch normalization | Frozen during fine tuning | Avoids updating moving statistics from a relatively small dataset. | This is a stability choice; its effect has not been measured. |
+| Dropout | `0.5` | Regularizes the dense classifier head. | No dropout ablation is available. |
+| Validation fraction / seed | `0.2` / `42` | Produces a reproducible stratified holdout. | Image-level split can leak patient-specific traits if patient repeats exist. |
+| Classification threshold | `0.5` | Converts score to a binary class using `score >= threshold`. | The threshold is not calibrated or tuned to a clinical/competition cost function. |
+| Early stopping | patience `3`, validation loss | Stops a phase after repeated lack of loss improvement and restores best weights. | The metric being monitored may not align with F1 or recall. |
+
+The supplied overview's original notebook used `ImageDataGenerator` and additional rescaling. Those notebook choices must not be attributed to the maintained CLI pipeline, whose input path is defined in `data.py` and `model.py`.
 
 ## History and current work
 
@@ -360,6 +461,24 @@ Runtime options are CLI arguments shown in the reference above; there are no app
 The supplied materials associate the project with “Tuberculosis Detection from Chest X-Rays,” attributed to CDIS, IIT Kanpur, with a Kaggle competition URL. They also state 2,940 labeled training images, 1,260 test images, and F1 with recall as a tie-breaker. The repository explicitly marks those competition facts as not fully verified against accessible official files/rules. Treat them as source-material claims until confirmed independently.
 
 For a technical presentation, a well-supported narrative is: *PulmoScan began as a notebook transfer-learning experiment and was organized into a local, modular pipeline for validating data, training an EfficientNetB3 classifier, reporting holdout metrics, and generating a competition-shaped CSV. The repository documents the intended method and the current data/evidence gaps; it does not report a verified score.* Avoid phrases such as “diagnoses TB,” “clinically accurate,” or “outperformed the baseline” unless future independent evidence supports a changed claim.
+
+### Requirements-to-implementation map
+
+The supplied competition overview describes expectations, but the official rule set was not independently verified. This map is therefore a project-material mapping, not a compliance certification.
+
+| Stated project/competition need | Repository implementation or evidence | Current qualification |
+|---|---|---|
+| Binary prediction from chest X-rays | EfficientNetB3 plus sigmoid in `model.py`; labels checked in `data.py`. | Implemented in source; not evaluated on a complete dataset. |
+| Respect CSV labels and image IDs | `load_labels()` validates required columns, unique IDs, binary labels, and referenced files. | Implemented for the documented CSV contract. |
+| Create a reproducible holdout | Stratified split with configurable seed and fraction. | Image-level; patient-level independence is unknown. |
+| Report classification performance | Accuracy, precision, recall, F1 and per-image probabilities. | Implemented; no actual score is present. |
+| Produce competition-shaped test output | `predict` writes `ID,Target`. | Writer is implemented; no output from a successful run or submission is recorded. |
+| Use the event's official evaluation metric/schema | Supplied notes say F1 and recall tie-break and claim `ID,Target`. | Verify against current official rules before submission; no official accessible rulebook is preserved. |
+| Demonstrate a competitive result | No verified model result, personal submission, or score artifact. | Not established. |
+
+### Portfolio and skills summary
+
+The source tree supports describing the work as experience with Python package organization, TensorFlow/Keras transfer learning, image input pipelines, binary classification, stratified validation, metric reporting, CLI design, and reproducibility documentation. It does **not** support claims of clinical AI deployment, Kaggle ranking, model accuracy, production operations, or benchmark improvement. For a resume or portfolio, describe concrete implementation contributions and omit performance claims until a complete run and independent evidence exist.
 
 ## Source and evidence index
 
