@@ -207,18 +207,18 @@ The effective training sequence is:
 
 ```mermaid
 sequenceDiagram
-    participant D as Validated training data
+    participant D as Training data
     participant M as Model
-    participant V as Holdout validation data
+    participant V as Validation data
     participant F as Run files
-    D->>M: Fit new head; backbone frozen
-    M->>V: Evaluate validation loss after epochs
+    D->>M: Fit head while backbone is frozen
+    M->>V: Measure validation loss
     M->>F: Save best head checkpoint
-    D->>M: Optionally fine-tune final backbone layers
-    M->>V: Evaluate fine-tuning validation loss
-    M->>F: Save best fine-tuned checkpoint
-    F->>V: Compare phase checkpoints by loss
-    V->>F: Write selected model, metrics, and per-image predictions
+    D->>M: Optionally fine tune final backbone layers
+    M->>V: Measure fine tuning validation loss
+    M->>F: Save best fine tuning checkpoint
+    F->>V: Compare the phase checkpoints
+    V->>F: Record selected model and validation outputs
 ```
 
 Early stopping and checkpointing address overfitting operationally by retaining lower-validation-loss weights and stopping after repeated non-improvement. They do not demonstrate generalization to a new hospital, scanner, population, or patient cohort.
