@@ -6,6 +6,7 @@
 
 - [At a glance](#at-a-glance)
 - [Problem, thesis, and users](#problem-thesis-and-users)
+- [Competition and dataset context](#competition-and-dataset-context)
 - [Scope and limitations](#scope-and-limitations)
 - [End-to-end workflow](#end-to-end-workflow)
 - [Architecture](#architecture)
@@ -15,6 +16,7 @@
 - [Design choices and parameter rationale](#design-choices-and-parameter-rationale)
 - [Data contracts and artifacts](#data-contracts-and-artifacts)
 - [CLI reference](#cli-reference)
+- [Original notebook workflow](#original-notebook-workflow)
 - [Security, privacy, and responsible use](#security-privacy-and-responsible-use)
 - [Operations and deployment](#operations-and-deployment)
 - [Evaluation and evidence](#evaluation-and-evidence)
@@ -23,6 +25,7 @@
 - [Setup and commands](#setup-and-commands)
 - [Competition and presentation context](#competition-and-presentation-context)
 - [Project skills and portfolio wording](#project-skills-and-portfolio-wording)
+- [Author and project context](#author-and-project-context)
 - [Source and evidence index](#source-and-evidence-index)
 
 ## At a glance
@@ -49,6 +52,26 @@ A short notebook-based experiment is difficult to reproduce and difficult to ass
 ### Problem framing
 
 The project frames TB recognition from chest radiographs as binary image classification. Labels are supplied in `TB_train.csv`; the model learns a mapping from image pixels to a class-1 probability. The original supplied overview places the work in a CDIS/IIT Kanpur hackathon context. The repository's competition notes state that event rules and metric details were not independently confirmed from an accessible official rulebook.
+
+The project thesis is educational: reuse an established pretrained image backbone, adapt a small classification head to labeled radiographs, and make the experiment inspectable. The repository does not compare this approach with a verified benchmark or show that it improves diagnosis or screening.
+
+### Competition and dataset context
+
+The following table captures the supplied overview's event claims so that historical context is not lost. It is not a substitute for official competition rules.
+
+| Field in supplied project materials | Supplied value | Verification status |
+|---|---|---|
+| Event | Tuberculosis Detection from Chest X-Rays | Name and URL appear in project materials. |
+| Host attribution | CDIS, IIT Kanpur | Attributed by the supplied project overview; not independently confirmed here. |
+| Competition URL | [Kaggle competition page](https://www.kaggle.com/competitions/tuberculosis-detection-from-chest-x-rays) | Link is preserved in project documentation; page rules were not fully verified in the repository setup notes. |
+| Dates | March 28–30, 2025 | Supplied overview claim; verify from official event materials. |
+| Task | Binary chest X-ray image classification | Consistent with repository labels/code. |
+| Dataset size | 2,940 labeled rows and 1,260 test images | Counts appear in supplied notes; local snapshot contains 2,940 CSV rows, 1,309 train PNGs, and 1,260 test PNGs. |
+| Scoring | F1, with recall as tie-breaker | Supplied overview claim; official metric/rules were not confirmed. |
+| Submission | `ID,Target` | Implemented by the maintained prediction writer; official schema should still be checked before use. |
+| Competition result | None evidenced for PulmoScan | Repository notes report no account submission in the 2026-11-01 CLI check. |
+
+The dataset is expected as a label CSV plus separate training and test PNG folders. The original notes also mention data-provider downloads and Colab/Drive storage. Use only authorized dataset access; this overview intentionally omits credentials from the supplied materials.
 
 ### Users and use cases
 
@@ -201,6 +224,8 @@ Each path is read by TensorFlow, decoded as a 3-channel PNG, resized to a square
 
 The model is `EfficientNetB3(include_top=False, weights="imagenet")`, initially frozen and called with `training=False`, followed by global average pooling, Dense(256, ReLU), Dropout(0.5), and Dense(1, sigmoid). The sigmoid output represents a model score/probability for class 1; it is not a calibrated clinical probability.
 
+EfficientNet is used as a transfer-learning feature extractor: the initial training phase learns task-specific classifier weights while reusing the ImageNet feature representation, then the optional second phase adapts a selected final portion of the backbone. Global average pooling compresses the final spatial feature maps into a vector; the dense layer learns a compact binary decision representation; dropout randomly suppresses a fraction of dense activations during training; and the sigmoid produces one scalar in `[0,1]`. These are architectural purposes, not measured reasons why this model is best for these radiographs. No controlled backbone comparison is available.
+
 The head phase uses Adam at `1e-4`, binary cross-entropy, and binary accuracy. Fine tuning defaults to the final 100 backbone layers with Adam at `1e-5`; batch-normalization layers are explicitly kept non-trainable. Each phase monitors validation loss, saves its best checkpoint, and uses early stopping with patience 3 and restoration of best weights. If fine tuning runs, the two saved checkpoints are evaluated on the validation dataset and the lower-loss one becomes `best_model.keras`; the intermediate fine-tune file is removed. The loader does not add class weights or resampling despite the label imbalance documented in the data notes.
 
 The effective training sequence is:
@@ -330,6 +355,38 @@ python -m pulmoscan predict --model artifacts/run-001/best_model.keras --data-di
 | `--image-size`, `--batch-size`, `--seed`, `--threshold` | `224`, `32`, `42`, `0.5` | Input pipeline and threshold settings. |
 
 `python -m pulmoscan train --help` and `python -m pulmoscan predict --help` print parser help. The CLI checks threshold/fraction bounds; other semantic constraints such as positive batch size and fine-tune layer count are not comprehensively validated before TensorFlow execution.
+
+## Original notebook workflow
+
+The three notebooks under `notebooks/original/` are historical Colab-oriented experiments. They are preserved as supplied, may have stale Google Drive paths and partial outputs, and are not the recommended maintained execution path. This section records their intended workflow and method so the reference's notebook context remains available.
+
+### Intended notebook workflow
+
+The original overview described these general steps:
+
+1. Open a notebook in Google Colab and select a runtime. A GPU was suggested for faster training, but no measured runtime or GPU benchmark is preserved.
+2. Mount Google Drive using Colab's drive integration if the dataset is stored there.
+3. Set paths to the training PNG folder, test PNG folder, and `TB_train.csv`. The supplied overview used a path under `/content/drive/MyDrive/`; folder capitalization differs across original material. Verify paths in the notebook rather than assuming the archived values are current.
+4. Run notebook cells to load the CSV, configure image generators, construct EfficientNetB3, and fit the head and fine-tuning stages.
+5. A separate prediction/export step would be needed to produce a competition CSV. The archived notebooks do not contain a verified final submission writer or successful export artifact.
+
+The older overview also supplied Windows/Colab data-download examples. Dataset delivery has not been reliably established by the current Kaggle CLI evidence, and access credentials in the supplied text are intentionally not reproduced. Prefer the authorized data package provided to the team and check its terms. The repository's [data guide](data.md) records the limited download/API observations.
+
+### Notebook versus maintained pipeline
+
+| Area | Original notebook materials | Maintained `pulmoscan` CLI |
+|---|---|---|
+| Execution | Interactive Colab/Jupyter cells, with Drive-specific paths in some copies. | Installable Python package invoked from a shell. |
+| Data loader | Notebook uses CSV/dataframe image generator patterns; supplied overview describes labels converted to strings for binary generator compatibility. | `tf.data` reads path/label tensors; explicit validation precedes splitting. |
+| Split | Notebook notes describe a nominal 80/20 validation split. | `train_test_split` stratifies by target with a configurable fraction and seed. |
+| Image preprocessing | Notebook-era material describes 224×224 input and `/255` rescaling. | PNG decoded to RGB and resized; EfficientNet application preprocessing handles rescaling, with no second `/255` operation in the maintained loader. |
+| Model | EfficientNetB3 with GAP, Dense(256, ReLU), Dropout(0.5), sigmoid. | Same broad architecture in `model.py`, with explicit named layers. |
+| Training | Frozen base followed by fine tuning; partial calls/logs remain in notebooks. | Separate checkpointed phases, early stopping, frozen BatchNorm, validation-loss checkpoint comparison. |
+| Evaluation | Notebooks lack a reliable final holdout result in preserved outputs. | Computes accuracy, precision, recall, F1 and per-image validation predictions after a successful run. |
+| Test submission | No verified submission generation is preserved in notebook outputs. | `predict` writes an `ID,Target` CSV from a saved model and test PNG folder. |
+| Evidence | Partial logs include a stale `KeyError: 'class'` traceback in an empty cell in two copies. | Code path is present, but the current incomplete dataset has blocked a verified end-to-end run. |
+
+Do not treat the CLI's data checks and outputs as proof that the earlier notebook completed those steps; the maintained code is a later reproducibility layer.
 
 ## Security, privacy, and responsible use
 
@@ -479,6 +536,32 @@ The supplied competition overview describes expectations, but the official rule 
 ### Portfolio and skills summary
 
 The source tree supports describing the work as experience with Python package organization, TensorFlow/Keras transfer learning, image input pipelines, binary classification, stratified validation, metric reporting, CLI design, and reproducibility documentation. It does **not** support claims of clinical AI deployment, Kaggle ranking, model accuracy, production operations, or benchmark improvement. For a resume or portfolio, describe concrete implementation contributions and omit performance claims until a complete run and independent evidence exist.
+
+#### Skill areas evidenced by the repository
+
+| Area | Concrete project evidence | Safe description |
+|---|---|---|
+| Python software organization | `src`-layout package, modules, `pyproject.toml`, module entry point | Organized a research prototype into a reusable Python package and CLI. |
+| Deep learning | Keras model construction, compile/fit, callbacks, saved-model loading | Implemented a TensorFlow/Keras binary image-classification training and inference path. |
+| Transfer learning | ImageNet EfficientNetB3, frozen backbone and partial unfreezing | Applied a two-stage transfer-learning design; no claim that it outperformed alternatives. |
+| Computer vision data pipeline | PNG decode, RGB conversion, resize, batching, prefetch | Built a TensorFlow input pipeline for file-based chest X-ray images. |
+| Data validation | CSV columns, unique IDs, binary labels, missing-image checks | Added early checks for training data contract failures. |
+| Evaluation design | Stratified holdout, thresholded metrics and per-row outputs | Implemented holdout metric calculation; no metric result is currently available. |
+| Experiment reproducibility | Seed, configuration fields in metrics JSON, named outputs | Captured key run settings in artifacts when a training run completes. |
+| Documentation and responsible framing | Model card, results, data/provenance/licensing guides | Documented data constraints, evidence boundaries, and intended-use limits. |
+| Cloud notebook familiarity | Original Colab notebooks include Drive-oriented setup | Preserved Colab experiments; this does not establish cloud deployment or a successfully completed GPU run. |
+
+Avoid resume bullets that state a specific F1, accuracy, rank, clinical impact, or deployed outcome unless a future run or external record establishes it.
+
+### Example technically accurate portfolio summary
+
+> Organized a Colab-era EfficientNetB3 chest X-ray classification experiment into a modular TensorFlow CLI pipeline. Implemented CSV/image validation, a seeded stratified holdout, frozen-backbone and optional fine-tuning stages, validation metrics, and competition-format prediction export. Documented that the local dataset snapshot was incomplete and that no verified model score or competition submission was available.
+
+This wording describes repository work and its evidence status; it is not a claim of validated diagnostic performance.
+
+## Author and project context
+
+`CITATION.cff` names Abhinav Rathee as the software author and identifies the software as PulmoScan version 0.1.0 with a 2026-11-01 release date in citation metadata. `pyproject.toml` lists the package version as 0.1.0 and the project as educational. `CHANGELOG.md` records an Unreleased section and does not establish that a public release artifact was published. The repository's MIT license scope and third-party/data exceptions are detailed in [licensing and citations](licensing-and-citations.md).
 
 ## Source and evidence index
 
