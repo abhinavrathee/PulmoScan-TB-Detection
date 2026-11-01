@@ -1,0 +1,1 @@
+http://kaggle.com/competitions/tuberculosis-detection-from-chest-x-rays

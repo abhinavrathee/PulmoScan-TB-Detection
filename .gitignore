@@ -1,0 +1,30 @@
+# Local data and credentials
+data/
+TB_Dataset/
+.env
+*.key
+kaggle.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# Model outputs and experiment artifacts
+artifacts/
+*.keras
+*.h5
+*.hdf5
+
+# Notebook noise
+.ipynb_checkpoints/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
