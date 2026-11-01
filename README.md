@@ -89,14 +89,14 @@ EfficientNet preprocessing is built into the TensorFlow/Keras application model.
 
 ```mermaid
 sequenceDiagram
-    participant Data as Training data
-    participant Model as EfficientNetB3 model
-    participant Val as Validation set
-    participant Disk as Run artifacts
+    participant Data
+    participant Model
+    participant Val
+    participant Disk
 
-    Data->>Model: Train classifier head; backbone frozen
+    Data->>Model: Train classifier head with backbone frozen
     Model->>Val: Check validation loss after each epoch
-    Val-->>Disk: Save best checkpoint; stop early after no improvement
+    Val-->>Disk: Save best checkpoint and stop early after no improvement
     Data->>Model: Unfreeze final 100 backbone layers (BatchNorm stays frozen)
     Model->>Val: Fine-tune with lower learning rate
     Val-->>Disk: Keep the checkpoint with lower validation loss
